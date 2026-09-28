@@ -54,7 +54,7 @@ CREATE TABLE messages (
 );
 COMMENT ON TABLE  messages                 IS 'One row per unique raw message file (sha256 of its exact bytes).';
 COMMENT ON COLUMN messages.sha256          IS 'SHA-256 of the raw file bytes. Also the viewer key: /m/<hex>.';
-COMMENT ON COLUMN messages.message_id      IS 'Message-ID header as written, trimmed. NULL when absent. Not unique: the same email in two accounts shares it.';
+COMMENT ON COLUMN messages.message_id      IS 'Message-ID with surrounding whitespace and angle brackets removed, so copies join across accounts. NULL when absent. Not unique: the same email in two accounts shares it.';
 COMMENT ON COLUMN messages.date_raw        IS 'Date header as written; kept because some are unparseable or lack a zone.';
 COMMENT ON COLUMN messages.sent_at         IS 'Parsed Date header. NULL when missing or unparseable.';
 COMMENT ON COLUMN messages.raw_headers     IS 'The whole header block, byte-exact (not always valid UTF-8).';

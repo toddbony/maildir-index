@@ -35,7 +35,7 @@ Edge cases found and handled by the column types:
 | Found | Handling |
 |---|---|
 | Messages with no `Message-ID` (rare) | `message_id` nullable |
-| `Message-ID` without angle brackets, or over 255 characters | `text`, stored as written |
+| `Message-ID` without angle brackets, or over 255 characters | `text`; brackets and surrounding whitespace removed so copies join |
 | Missing or unparseable `Date`; dates without a zone | `date_raw` kept; `sent_at` nullable |
 
 ## Body text
