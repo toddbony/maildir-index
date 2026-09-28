@@ -1,0 +1,15 @@
+Message-ID: <html-quokka-0002@example.org>
+Date: Tue, 3 Jan 2023 11:00:00 +0000
+From: News Quokka <news.quokka@example.org>
+To: bob.quokka@example.org
+Subject: Quokka HTML newsletter
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html><head><style>p { color: red; }</style><title>ignored title</title></head>
+<body><h1>Quokka weekly</h1>
+<p>Read <b>the</b> <a href="https://example.org/quokka/article">full article</a>
+or <a href="https://example.com/quokka/archive">the archive</a>.</p>
+<img src="https://example.org/pixel.gif">
+<table><tr><td>cell one</td><td>cell two</td></tr></table>
+</body></html>

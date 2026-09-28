@@ -1,0 +1,20 @@
+Return-Path: <alice.quokka@example.org>
+Received: from mx.example.org by mail.example.com; Mon, 2 Jan 2023 10:00:05 +0100
+Message-ID: <plain-quokka-0001@example.org>
+In-Reply-To: <parent-quokka-0000@example.org> <other-quokka@example.org>
+Date: Mon, 2 Jan 2023 10:00:00 +0100
+From: =?utf-8?q?Alice_Qu=C3=B6kka?= <alice.quokka@example.org>
+To: bob.quokka@example.org, Team: carol.quokka@example.org, dave.quokka@example.com;
+Cc: "Erin Quokka" <erin.quokka@example.com>
+Subject: =?utf-8?b?UXVva2thIHBsYWluIHN1YmplY3Qgw6k=?=
+List-Id: Quokka discussion
+ <quokka.lists.example.org>
+List-Unsubscribe: <mailto:leave-quokka@example.org>,
+ <https://lists.example.org/quokka/leave>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Hello Bob,
+
+The quokka plain body says caf=C3=A9.

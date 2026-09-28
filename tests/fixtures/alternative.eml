@@ -1,0 +1,27 @@
+Message-ID: <alt-quokka-0003@example.org>
+Date: Wed, 4 Jan 2023 12:00:00 -0500
+From: alice.quokka@example.org
+To: bob.quokka@example.org
+Subject: Quokka alternative
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="outer"
+
+--outer
+Content-Type: multipart/alternative; boundary="inner"
+
+--inner
+Content-Type: text/html; charset=utf-8
+
+<p>Quokka <b>HTML</b> version</p>
+--inner
+Content-Type: text/plain; charset=utf-8
+
+Quokka plain version
+--inner--
+--outer
+Content-Type: application/pdf; name="report.pdf"
+Content-Disposition: attachment; filename="report.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKJcOkw7zDtsOfCg==
+--outer--
