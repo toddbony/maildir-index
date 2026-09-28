@@ -1,0 +1,15 @@
+# maildir-index configuration. Copy to /etc/maildir-index/config.toml and edit.
+#
+# Database connection settings do NOT go here: they come from the standard libpq
+# environment (PGHOST, PGPORT, PGDATABASE, PGUSER, PGSSLMODE, PGPASSFILE).
+
+# One subdirectory per account, as written by mbsync (SubFolders Verbatim).
+maildir_root = "/srv/mail/maildir"
+
+[[account]]
+name = "personal"            # directory name under maildir_root
+address = "me@example.org"
+
+[[account]]
+name = "work"
+address = "me@example.com"
