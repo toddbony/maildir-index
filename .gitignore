@@ -1,0 +1,12 @@
+/target
+# Real configuration never goes in this repo: it names accounts, hosts and paths.
+*.toml
+!Cargo.toml
+!example.toml
+.env
+*.pgpass
+pgpass
+# Never commit real mail. Test fixtures are synthetic and live under tests/fixtures/.
+*.eml
+!tests/fixtures/**/*.eml
+maildir/
