@@ -136,6 +136,11 @@ HTML-to-text.**
   no-break spaces) to one space and trim each line; collapse runs of blank lines to one; trim blank
   lines at both ends. If nothing is left, `body_text` NULL and `body_source = 'none'`. Found on real
   mail: layout-table newsletters rendered to hundreds of KB of spacer lines and padding.
+- **Links** (v0.1.2, both sources, before normalising): every `http(s)://` URL in the text is unwrapped
+  from Microsoft Safe Links (`*.safelinks.protection.outlook.com/?url=`) and Google (`google.com/url?q=`)
+  redirects, then reduced to scheme + host (+ non-default port) + path, dropping user info, query and
+  fragment, with the path capped at 100 characters (`…`). `body_text` is for indexing, not for
+  reconstructing the message; full URLs stay in the original file. Anything that doesn't parse is left as is.
 
 If a message can't be parsed at all, still insert the row: `raw_headers` from the bytes,
 `body_source = 'none'`, other fields NULL; count it as an error and log its sha256 prefix and path.
@@ -192,6 +197,8 @@ database. Required cases:
 16. `check` reports zero differences after a load, and non-zero after deleting a fixture file.
 17. Layout-table HTML with spacer rows and `&zwnj;&nbsp;` preheader padding → compact text, no runs of
     blank lines or spaces, no invisible characters; an HTML body of only spacers → `body_source = 'none'`.
+18. Safe Links / Google redirect URLs in HTML and plain bodies → unwrapped, query and fragment dropped,
+    long paths capped; non-URLs and non-http schemes untouched.
 
 ## Packaging (`cargo deb`)
 

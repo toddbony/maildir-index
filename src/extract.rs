@@ -176,12 +176,12 @@ fn extract_inner(bytes: &[u8], sha: [u8; 32], size_bytes: i32) -> Extracted {
             .collect()
     };
     if let Some(text) = body_parts(&msg.text_body).into_iter().find_map(plain_text) {
-        row.body_text = Some(normalize_text(text));
+        row.body_text = Some(normalize_text(&crate::links::simplify_urls(text)));
         row.body_source = BodySource::Plain;
     } else if let Some(html) = body_parts(&msg.html_body).into_iter().find_map(html_text) {
         match html_to_text(html) {
             Some(text) => {
-                row.body_text = Some(normalize_text(&text));
+                row.body_text = Some(normalize_text(&crate::links::simplify_urls(&text)));
                 row.body_source = BodySource::Html;
             }
             None => problem = Some(Problem::HtmlRenderFailed),
@@ -437,6 +437,22 @@ mod tests {
         assert!(!t.contains("  "), "{t:?}");
         assert!(!t.contains('\u{200C}') && !t.contains('\u{00A0}'), "{t:?}");
         assert!(t.len() < 300, "{} bytes: {t:?}", t.len());
+    }
+
+    #[test]
+    fn safelinks_in_html_and_plain_are_unwrapped() {
+        let safe = "https://nam12.safelinks.protection.outlook.com/?url=https%3A%2F%2Fshop.example.org%2Fdeals%3Futm_source%3Dx&data=05%7C02%7Cabc&sdata=Zm9v&reserved=0";
+        let html = format!(
+            "From: a@example.org\r\nContent-Type: text/html\r\n\r\n<p><a href=\"{safe}\">Deals</a></p>"
+        );
+        let t = extract(html.as_bytes()).row.body_text.unwrap();
+        assert!(t.contains("https://shop.example.org/deals"), "{t}");
+        assert!(!t.contains("safelinks") && !t.contains("utm_"), "{t}");
+        let plain = format!("From: a@example.org\r\n\r\nSee <{safe}> today.");
+        assert_eq!(
+            extract(plain.as_bytes()).row.body_text.as_deref(),
+            Some("See <https://shop.example.org/deals> today.")
+        );
     }
 
     #[test]

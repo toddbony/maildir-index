@@ -1,6 +1,6 @@
 [package]
 name = "maildir-index"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.85"
 description = "Index Maildir trees (mbsync/isync) into PostgreSQL"
@@ -21,6 +21,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 toml = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+url = "2"
 # Not used directly. sqlx-postgres 0.9.0 depends on whoami without default features, which
 # builds its stub backend: with PGUSER unset it would connect as "anonymous" instead of the
 # OS user (the libpq default). Enabling "std" here selects the real backend.

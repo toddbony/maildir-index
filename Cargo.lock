@@ -879,7 +879,7 @@ dependencies = [
 
 [[package]]
 name = "maildir-index"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "chrono",
@@ -895,6 +895,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber",
+ "url",
  "whoami",
 ]
 

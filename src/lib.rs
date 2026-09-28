@@ -7,6 +7,7 @@ pub mod check;
 pub mod config;
 pub mod db;
 pub mod extract;
+pub mod links;
 pub mod load;
 pub mod par;
 pub mod sample;
