@@ -105,7 +105,7 @@ unmounted disk or a wrong path.
 | Column | Rule |
 |---|---|
 | `raw_headers` | Bytes from the start of the file up to (not including) the first blank line (`\r\n\r\n` or `\n\n`). Whole file if there is none. **Byte-exact, never decoded** |
-| `message_id` | Parsed Message-ID, surrounding whitespace and `<>` removed. NULL if absent or empty |
+| `message_id` | Parsed Message-ID, surrounding whitespace and `<>` removed. If the parser rejects it (e.g. an unclosed `<`), the header's raw text, same normalisation (v0.1.3). NULL if absent or empty |
 | `in_reply_to` | First ID of In-Reply-To, same normalisation |
 | `date_raw` | The Date header's text as written (unfolded, trimmed) |
 | `sent_at` | Parsed Date. A date with no zone is taken as UTC (`date_raw` keeps the truth). NULL if missing, unparseable, or outside 1971–2100 |
@@ -142,7 +142,9 @@ HTML-to-text.**
   fragment, with the path capped at 100 characters (`…`). `body_text` is for indexing, not for
   reconstructing the message; full URLs stay in the original file. Anything that doesn't parse is left as is.
 
-If a message can't be parsed at all, still insert the row: `raw_headers` from the bytes,
+If the HTML renderer fails or panics, keep the headers: `body_text` NULL, `body_source = 'none'`, counted
+as an error (v0.1.3; html2text 0.17.1 panics on some `rowspan="0"`/`colspan="0"` tables). If a message
+can't be parsed at all, still insert the row: `raw_headers` from the bytes,
 `body_source = 'none'`, other fields NULL; count it as an error and log its sha256 prefix and path.
 **One bad message never stops a run.**
 
@@ -199,6 +201,8 @@ database. Required cases:
     blank lines or spaces, no invisible characters; an HTML body of only spacers → `body_source = 'none'`.
 18. Safe Links / Google redirect URLs in HTML and plain bodies → unwrapped, query and fragment dropped,
     long paths capped; non-URLs and non-http schemes untouched.
+19. A renderer panic (the html2text `rowspan="0"`/`colspan="0"` table) keeps the headers; a Message-ID the
+    parser rejects (unclosed `<`) falls back to the header text.
 
 ## Packaging (`cargo deb`)
 

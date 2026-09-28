@@ -142,7 +142,12 @@ fn extract_inner(bytes: &[u8], sha: [u8; 32], size_bytes: i32) -> Extracted {
         };
     };
 
-    row.message_id = msg.message_id().and_then(normalize_id);
+    // mail-parser rejects some malformed IDs (e.g. an unclosed `<`); fall back to the header text.
+    row.message_id = msg.message_id().and_then(normalize_id).or_else(|| {
+        header_text(&msg, "Message-ID")
+            .as_deref()
+            .and_then(normalize_id)
+    });
     row.in_reply_to = match msg.in_reply_to() {
         HeaderValue::Text(t) => normalize_id(t),
         HeaderValue::TextList(l) => l.first().and_then(|t| normalize_id(t)),
@@ -232,13 +237,26 @@ fn html_text<'a>(part: &'a MessagePart<'_>) -> Option<&'a str> {
 
 /// Render HTML to plain text: no wrapping, links as numbered footnotes, images as alt text
 /// only, no decoration. `None` if html2text fails.
+///
+/// A panic inside html2text is contained here, so that only the body is lost and the headers
+/// already extracted are kept (html2text 0.17.1 slices out of bounds on some `rowspan="0"` /
+/// `colspan="0"` tables).
 pub fn html_to_text(html: &str) -> Option<String> {
-    html2text::config::with_decorator(html2text::render::TrivialDecorator::new())
-        .link_footnotes(true)
-        .no_table_borders()
-        .allow_width_overflow()
-        .string_from_read(html.as_bytes(), HTML_WIDTH)
+    contain_panic(|| {
+        html2text::config::with_decorator(html2text::render::TrivialDecorator::new())
+            .link_footnotes(true)
+            .no_table_borders()
+            .allow_width_overflow()
+            .string_from_read(html.as_bytes(), HTML_WIDTH)
+            .ok()
+    })
+}
+
+/// Run `f`, turning a panic into `None`. The panic hook still logs where it happened.
+fn contain_panic<T>(f: impl FnOnce() -> Option<T>) -> Option<T> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
         .ok()
+        .flatten()
 }
 
 /// Invisible format characters that marketing mail uses as padding (preheader filler, spacer
@@ -461,6 +479,39 @@ mod tests {
         let e = extract(raw.as_bytes());
         assert_eq!(e.row.body_source, BodySource::None);
         assert_eq!(e.row.body_text, None);
+    }
+
+    #[test]
+    fn html_renderer_panic_keeps_headers() {
+        // html2text 0.17.1 panics on this table (rowspan="0" with colspan="0").
+        let table = r#"<table><tr><td rowspan="0">a</td><td rowspan="2">b</td></tr><tr><td>c</td></tr><tr><td colspan="0">wide wide wide wide</td></tr></table>"#;
+        let raw = format!(
+            "Message-ID: <t@example.org>\r\nFrom: A <a@example.org>\r\nSubject: kept\r\nDate: Mon, 2 Jan 2023 10:00:00 +0000\r\nContent-Type: text/html\r\n\r\n{table}"
+        );
+        let e = extract(raw.as_bytes());
+        assert_eq!(e.problem, Some(Problem::HtmlRenderFailed));
+        assert_eq!(e.row.body_source, BodySource::None);
+        assert_eq!(e.row.body_text, None);
+        assert_eq!(e.row.subject.as_deref(), Some("kept"));
+        assert_eq!(e.row.from_addr.as_deref(), Some("a@example.org"));
+        assert_eq!(e.row.message_id.as_deref(), Some("t@example.org"));
+        assert!(e.row.sent_at.is_some());
+        assert_eq!(contain_panic::<()>(|| panic!("boom")), None);
+    }
+
+    #[test]
+    fn message_id_parser_rejects_fall_back_to_header_text() {
+        let m = |v: &str| {
+            let raw = format!("Message-ID: {v}\r\nFrom: a@example.org\r\n\r\nx");
+            extract(raw.as_bytes()).row.message_id
+        };
+        assert_eq!(
+            m("<unclosed@example.org").as_deref(),
+            Some("unclosed@example.org")
+        );
+        assert_eq!(m("<ok@example.org>").as_deref(), Some("ok@example.org"));
+        assert_eq!(m("<>"), None);
+        assert_eq!(m(""), None);
     }
 
     #[test]
