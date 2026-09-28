@@ -1,0 +1,16 @@
+[Unit]
+Description=Index Maildir trees into PostgreSQL (maildir-index load)
+Documentation=file:///usr/share/doc/maildir-index/README.deploy.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/maildir-index load
+User=maildir-index
+Group=maildir-index
+EnvironmentFile=-/etc/default/maildir-index
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes

@@ -1,0 +1,15 @@
+# /etc/default/maildir-index: environment for maildir-index-load.service.
+# Copy from /usr/share/doc/maildir-index/default.example and edit.
+#
+# Standard libpq variables. The password is read ONLY from PGPASSFILE (pgpass
+# format: host:port:database:user:password); PGPASSWORD is refused.
+
+PGHOST=db.example.org
+PGPORT=5432
+PGDATABASE=maildir_index
+PGUSER=maildir_index
+PGSSLMODE=require
+PGPASSFILE=/etc/maildir-index/pgpass
+
+# Log level (journal). Message content is never logged at any level.
+#RUST_LOG=info

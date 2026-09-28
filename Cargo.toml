@@ -28,3 +28,23 @@ whoami = { version = "2", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 tempfile = "3"
+
+[package.metadata.deb]
+# Placeholder: set the real one at build time with `cargo deb --maintainer "..."`.
+maintainer = "maildir-index maintainers <maintainers@example.org>"
+section = "mail"
+priority = "optional"
+depends = "$auto, adduser, systemd"
+extended-description = """\
+Walks Maildir trees written by mbsync/isync and indexes them into PostgreSQL: \
+parsed headers plus a text rendering of each body. The Maildir is only read. \
+Installs a oneshot service and a timer; enables nothing."""
+maintainer-scripts = "debian/"
+assets = [
+    ["target/release/maildir-index", "usr/bin/", "755"],
+    ["debian/maildir-index-load.service", "usr/lib/systemd/system/", "644"],
+    ["debian/maildir-index-load.timer", "usr/lib/systemd/system/", "644"],
+    ["example.toml", "usr/share/doc/maildir-index/config.example.toml", "644"],
+    ["debian/default.example", "usr/share/doc/maildir-index/", "644"],
+    ["debian/README.deploy.md", "usr/share/doc/maildir-index/", "644"],
+]

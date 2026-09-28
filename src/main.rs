@@ -67,7 +67,8 @@ const FORCED_DIRECTIVES: &[&str] = &[
 ];
 
 fn init_logging() {
-    let mut filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    let mut filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info,sqlx::postgres::notice=warn"));
     for d in FORCED_DIRECTIVES {
         filter = filter.add_directive(d.parse().expect("static directive"));
     }
