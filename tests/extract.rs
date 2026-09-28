@@ -63,7 +63,7 @@ fn case01_plain_text_all_columns() {
     assert_eq!(r.body_source, BodySource::Plain);
     assert_eq!(
         r.body_text.as_deref(),
-        Some("Hello Bob,\r\n\r\nThe quokka plain body says café.\r\n")
+        Some("Hello Bob,\n\nThe quokka plain body says café.")
     );
     assert_eq!(r.size_bytes as usize, bytes.len());
     assert_eq!(r.attachment_count, 0);

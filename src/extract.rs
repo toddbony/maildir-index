@@ -176,16 +176,21 @@ fn extract_inner(bytes: &[u8], sha: [u8; 32], size_bytes: i32) -> Extracted {
             .collect()
     };
     if let Some(text) = body_parts(&msg.text_body).into_iter().find_map(plain_text) {
-        row.body_text = Some(strip_nul(text));
+        row.body_text = Some(normalize_text(text));
         row.body_source = BodySource::Plain;
     } else if let Some(html) = body_parts(&msg.html_body).into_iter().find_map(html_text) {
         match html_to_text(html) {
             Some(text) => {
-                row.body_text = Some(strip_nul(&text));
+                row.body_text = Some(normalize_text(&text));
                 row.body_source = BodySource::Html;
             }
             None => problem = Some(Problem::HtmlRenderFailed),
         }
+    }
+    // Nothing left after normalisation (e.g. an HTML body of spacers and images): no text.
+    if row.body_text.as_deref() == Some("") {
+        row.body_text = None;
+        row.body_source = BodySource::None;
     }
     Extracted { row, problem }
 }
@@ -234,6 +239,62 @@ pub fn html_to_text(html: &str) -> Option<String> {
         .allow_width_overflow()
         .string_from_read(html.as_bytes(), HTML_WIDTH)
         .ok()
+}
+
+/// Invisible format characters that marketing mail uses as padding (preheader filler, spacer
+/// cells). They carry no text and are dropped.
+fn is_invisible(c: char) -> bool {
+    matches!(
+        c,
+        '\0' | '\u{00AD}' // soft hyphen
+            | '\u{034F}' // combining grapheme joiner
+            | '\u{180E}' // Mongolian vowel separator
+            | '\u{200B}'
+            ..='\u{200D}' // zero-width space, non-joiner, joiner
+            | '\u{2060}' // word joiner
+            | '\u{FEFF}' // byte-order mark / zero-width no-break space
+    )
+}
+
+/// Normalise body text for search and classification (display always reopens the file):
+/// drop NULs and invisible padding characters, collapse runs of horizontal whitespace
+/// (including no-break spaces) to one space, trim each line, collapse runs of blank lines to a
+/// single blank line, and trim blank lines at both ends.
+pub fn normalize_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len().min(1 << 20));
+    let mut line = String::new();
+    let mut blank_pending = false;
+    for raw in s.split('\n') {
+        line.clear();
+        let mut space = false;
+        for c in raw.chars() {
+            if is_invisible(c) {
+                continue;
+            }
+            if c.is_whitespace() {
+                space = true;
+                continue;
+            }
+            if space && !line.is_empty() {
+                line.push(' ');
+            }
+            space = false;
+            line.push(c);
+        }
+        if line.is_empty() {
+            blank_pending = !out.is_empty();
+            continue;
+        }
+        if !out.is_empty() {
+            out.push('\n');
+            if blank_pending {
+                out.push('\n');
+            }
+        }
+        blank_pending = false;
+        out.push_str(&line);
+    }
+    out
 }
 
 /// The first header with this name: raw bytes, lossily decoded, unfolded, trimmed.
@@ -339,6 +400,51 @@ mod tests {
         assert!(!t.contains("color:red"), "{t}");
         let long = format!("<p>{}</p>", "word ".repeat(1000));
         assert_eq!(html_to_text(&long).unwrap().trim().lines().count(), 1);
+    }
+
+    #[test]
+    fn normalization() {
+        assert_eq!(
+            normalize_text("\n\n  a   b\u{00A0}\u{00A0}c  \r\n\n\n\n \u{200C}\u{00A0} \n\td\n\n"),
+            "a b c\n\nd"
+        );
+        assert_eq!(normalize_text("x\u{200B}y\u{FEFF}\u{034F}"), "xy");
+        assert_eq!(normalize_text("one\ntwo\n\nthree"), "one\ntwo\n\nthree");
+        assert_eq!(normalize_text("\u{200C}\u{00A0}\n \n\u{00AD}"), "");
+        assert_eq!(normalize_text("nul\0byte"), "nulbyte");
+    }
+
+    #[test]
+    fn marketing_layout_html_is_compact() {
+        let spacer = "<tr><td height=\"20\" style=\"font-size:0\">&nbsp;</td></tr>".repeat(30);
+        let pre = "&zwnj;&nbsp;".repeat(90);
+        let html = format!(
+            "<html><body><div style=\"display:none\">Sale ends Sunday{pre}</div>\
+             <table width=\"600\"><tr><td><table>{spacer}<tr><td>Hello there, big sale.</td>\
+             <td width=\"40\">&nbsp;</td><td>Shop <a href=\"https://example.org/shop\">now</a></td></tr>\
+             {spacer}<tr><td>Second sentence here.</td></tr>{spacer}</table></td></tr></table></body></html>"
+        );
+        let raw = format!(
+            "From: a@example.org\r\nSubject: s\r\nContent-Type: text/html; charset=utf-8\r\n\r\n{html}"
+        );
+        let e = extract(raw.as_bytes());
+        assert_eq!(e.row.body_source, BodySource::Html);
+        let t = e.row.body_text.unwrap();
+        assert!(t.contains("Hello there, big sale."), "{t}");
+        assert!(t.contains("Second sentence here."), "{t}");
+        assert!(t.contains("https://example.org/shop"), "{t}");
+        assert!(!t.contains("\n\n\n"), "{t:?}");
+        assert!(!t.contains("  "), "{t:?}");
+        assert!(!t.contains('\u{200C}') && !t.contains('\u{00A0}'), "{t:?}");
+        assert!(t.len() < 300, "{} bytes: {t:?}", t.len());
+    }
+
+    #[test]
+    fn html_of_only_spacers_has_no_text() {
+        let raw = "From: a@example.org\r\nContent-Type: text/html\r\n\r\n<table><tr><td>&nbsp;</td></tr><tr><td>&zwnj;</td></tr></table>";
+        let e = extract(raw.as_bytes());
+        assert_eq!(e.row.body_source, BodySource::None);
+        assert_eq!(e.row.body_text, None);
     }
 
     #[test]

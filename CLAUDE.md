@@ -131,6 +131,11 @@ HTML-to-text.**
   width), links as numbered footnotes with the URL list at the end, images contributing nothing
   (or only alt text), no decorations/markup. `body_source = 'html'`.
 - Else → `body_text` NULL, `body_source = 'none'`.
+- **Then normalise** (v0.1.1, both sources): drop NUL and invisible padding characters (soft hyphen,
+  U+034F, U+180E, U+200B–U+200D, U+2060, U+FEFF); collapse runs of whitespace within a line (including
+  no-break spaces) to one space and trim each line; collapse runs of blank lines to one; trim blank
+  lines at both ends. If nothing is left, `body_text` NULL and `body_source = 'none'`. Found on real
+  mail: layout-table newsletters rendered to hundreds of KB of spacer lines and padding.
 
 If a message can't be parsed at all, still insert the row: `raw_headers` from the bytes,
 `body_source = 'none'`, other fields NULL; count it as an error and log its sha256 prefix and path.
@@ -185,6 +190,8 @@ database. Required cases:
 15. **Log hygiene:** run `load` over fixtures with distinctive subjects/addresses/Message-IDs,
     capture all log output, assert none of those strings appear.
 16. `check` reports zero differences after a load, and non-zero after deleting a fixture file.
+17. Layout-table HTML with spacer rows and `&zwnj;&nbsp;` preheader padding → compact text, no runs of
+    blank lines or spaces, no invisible characters; an HTML body of only spacers → `body_source = 'none'`.
 
 ## Packaging (`cargo deb`)
 

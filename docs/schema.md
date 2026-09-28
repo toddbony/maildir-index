@@ -42,7 +42,9 @@ Edge cases found and handled by the column types:
 
 About **one message in five was HTML-only**. Storing only `text/plain` would leave those with no
 text, so HTML is rendered to text (`html2text`: no line wrapping, links as footnotes, images
-dropped). `body_source` records `plain`, `html` or `none`, and `loader_version` records which
+dropped), then whitespace-normalised: invisible padding characters removed, runs of spaces and of
+blank lines collapsed. Newsletters built from layout tables otherwise render to hundreds of kilobytes
+of spacer lines. `body_source` records `plain`, `html` or `none`, and `loader_version` records which
 loader wrote the row, so rows can be re-rendered selectively if the renderer improves. NUL bytes
 are stripped because PostgreSQL `text` cannot hold them. The rendering is for search and
 classification only; display always goes back to the original file.
