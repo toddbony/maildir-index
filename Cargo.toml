@@ -21,6 +21,10 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 toml = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+# Not used directly. sqlx-postgres 0.9.0 depends on whoami without default features, which
+# builds its stub backend: with PGUSER unset it would connect as "anonymous" instead of the
+# OS user (the libpq default). Enabling "std" here selects the real backend.
+whoami = { version = "2", default-features = false, features = ["std"] }
 
 [dev-dependencies]
 tempfile = "3"

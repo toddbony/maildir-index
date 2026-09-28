@@ -55,15 +55,22 @@ enum Command {
     },
 }
 
+/// Appended after RUST_LOG, so they win whatever the operator asks for.
+const FORCED_DIRECTIVES: &[&str] = &[
+    // Parsers that see message content log it (html5ever traces every token).
+    "html5ever=off",
+    "markup5ever=off",
+    "html2text=off",
+    "mail_parser=off",
+    // sqlx logs malformed pgpass lines verbatim, which could expose a password.
+    "sqlx_postgres::options::pgpass=error",
+];
+
 fn init_logging() {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"))
-        // sqlx logs malformed pgpass lines verbatim, which could expose a password.
-        .add_directive(
-            "sqlx_postgres::options::pgpass=error"
-                .parse()
-                .expect("static directive"),
-        );
+    let mut filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    for d in FORCED_DIRECTIVES {
+        filter = filter.add_directive(d.parse().expect("static directive"));
+    }
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_writer(std::io::stderr)
